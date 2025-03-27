@@ -24,6 +24,8 @@ import traceback
 import bisect
 from collections import OrderedDict
 
+FP_ITEMS = ['fp_line', 'fp_circle', 'fp_arc', 'fp_poly']
+
 __author__ = "Zheng, Lei"
 __copyright__ = "Copyright 2016, Zheng, Lei"
 __license__ = "MIT"
@@ -368,6 +370,7 @@ class SexpParser(Sexp):
     """
 
     __slots__ = '_err'
+    FP_ITEMS = ['fp_line', 'fp_circle', 'fp_arc', 'fp_poly']
 
     def __init__(self,data):
         '''Constructor that dispatches parsing to lower level parsers
@@ -428,7 +431,8 @@ class SexpParser(Sexp):
             bools = set(bools)
 
         log = logger.isEnabledFor(logging.INFO)
-
+        
+        fp_item_order = 0
         for i,entry in enumerate(data[2:]):
             try:
                 if not isinstance(entry,list):
@@ -458,11 +462,16 @@ class SexpParser(Sexp):
                 if parse is None:
                     action = 3 # dynamic change to SexpList
                     if log: logger.info('{}._parse {} {}'.format(self.__class__.__name__,i,entry))
+                    if isinstance(entry, list) and entry[1] in FP_ITEMS:
+                        entry.append([entry[0], 'order', fp_item_order])
+                        fp_item_order += 1
                     ret = self._parse(i,entry)
                 else:
                     ret = parse(entry)
 
                 if ret is not None:
+                    if ret._key == 'module':
+                        fp_item_order = 0
                     self._addValue(ret,action)
 
             except Exception as e:
